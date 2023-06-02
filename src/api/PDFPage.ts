@@ -42,6 +42,7 @@ import {
   PDFRef,
   PDFDict,
   PDFArray,
+  PDFOperatorNames,
 } from 'src/core';
 import {
   assertEachIs,
@@ -1115,6 +1116,7 @@ export default class PDFPage {
   drawPage(
     embeddedPage: PDFEmbeddedPage,
     options: PDFPageDrawPageOptions = {},
+    ocGroupName?: string,
   ): void {
     // TODO: Reuse embeddedPage XObject name if we've already added this embeddedPage to Resources.XObjects
     assertIs(embeddedPage, 'embeddedPage', [
@@ -1155,8 +1157,13 @@ export default class PDFPage {
       : options.yScale !== undefined ? options.yScale
       : 1
     );
-
+    
     const contentStream = this.getContentStream();
+    
+    if (ocGroupName !== undefined) {
+      this.getContentStream().push(PDFOperator.of(PDFOperatorNames.BeginMarkedContent, [ PDFName.of('OC'), PDFName.of(ocGroupName) ]));
+    }
+    
     contentStream.push(
       ...drawPage(xObjectKey, {
         x: options.x ?? this.x,
@@ -1169,6 +1176,10 @@ export default class PDFPage {
         graphicsState: graphicsStateKey,
       }),
     );
+
+    if (ocGroupName !== undefined) {
+      this.getContentStream().push(PDFOperator.of(PDFOperatorNames.EndMarkedContent));
+    }
   }
 
   /**
